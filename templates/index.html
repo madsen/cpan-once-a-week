@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<title>The CPAN &ldquo;Once a Week, Every Week&rdquo; Contest</title>
+</head>
+<body>
+<h1>The CPAN &ldquo;Once a Week, Every Week&rdquo; Contest</h1>
+
+<p>In a <a href="http://blog.twoshortplanks.com/2011/12/31/once-a-week-every-week/">blog entry</a>,
+Mark Fowler resolved to <b>release a Perl distribution to the CPAN
+each and every week</b>.  I decided to take him up on his challenge,
+and created this website to track our progress.</p>
+
+<p>If you have a
+<a href="https://pause.perl.org/pause/query?ACTION=request_id">PAUSE ID</a>,
+then you&rsquo;re entered in the contest. All you have to do is upload
+a distribution to CPAN every week, and don&rsquo;t skip any weeks. It
+can be a new module, or just a new version of an existing module.</p>
+
+<h2><a href="longest">Longest Chains</a></h2>
+
+<table id="all_time">
+<thead>
+<tr>
+<th>Rank</th>
+<th>Author</th>
+<th>Chain Started</th>
+<th colspan="2">Weeks</th>
+</tr>
+</thead>
+<tbody>
+<% WHILE (author = all_time()) %>
+<tr>
+<td class="rank"><% author.ranking %></td>
+<td class="aid"><a href="https://metacpan.org/author/<% author.id
+  %>"><% author.id %></a></td>
+<td class="date"><% author.start_date %></td>
+<td class="length"><% author.length %></td>
+<% IF author.ongoing %><td class="ongoing">*</td><% END %>
+</tr>
+<% END %>
+</tbody>
+</table>
+
+<p class="note">* indicates that the chain is not yet broken</p>
+
+<h2><a href="current">Longest Chains Still under Construction</a></h2>
+
+<table id="current_runs">
+<thead>
+<tr>
+<th>Rank</th>
+<th>Author</th>
+<th>Chain Started</th>
+<th>Weeks</th>
+</tr>
+</thead>
+<tbody>
+<% WHILE (author = current()) %>
+<tr>
+<td class="rank"><% author.ranking %></td>
+<td class="aid"><a href="https://metacpan.org/author/<% author.id
+  %>"><% author.id %></a></td>
+<td class="date"><% author.start_date %></td>
+<td class="length"><% author.length %></td>
+</tr>
+<% END %>
+</tbody>
+</table>
+</body>
+</html>
+<%#
+ Local Variables:
+ compile-command: "perl ../makeweb.pl"
+ End:
+%>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<title>Current Chains &mdash; The CPAN &ldquo;Once a Week, Every Week&rdquo; Contest</title>
+</head>
+<body>
+<h1><a href="./">The CPAN &ldquo;Once a Week, Every Week&rdquo; Contest</a></h1>
+
+<h2>Chains Still under Construction</h2>
+
+<p class="tblNote">All authors whose chain is at least two weeks long</p>
+
+<table id="current_runs">
+<thead>
+<tr>
+<th>Rank</th>
+<th>Author</th>
+<th>Chain Started</th>
+<th>Weeks</th>
+</tr>
+</thead>
+<tbody>
+<% WHILE (author = current()) %>
+<tr id="cpan-<% author.id %>">
+<td class="rank"><% author.ranking %></td>
+<td class="aid"><a href="https://metacpan.org/author/<% author.id
+  %>"><% author.id %></a></td>
+<td class="date"><% author.start_date %></td>
+<td class="length"><% author.length %></td>
+</tr>
+<% END %>
+</tbody>
+</table>
+</body>
+</html>
+<%#
+ Local Variables:
+ compile-command: "perl ../makeweb.pl"
+ End:
+%>
