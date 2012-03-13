@@ -33,13 +33,13 @@ can be a new module, or just a new version of an existing module.</p>
 <tbody>
 <% WHILE (author = all_time()) %>
 <tr>
-<td class="rank"><% author.ranking %></td>
-<td class="aid"><a href="https://metacpan.org/author/<% author.id
+<td class="r"><% author.ranking %></td>
+<td class="a"><a href="https://metacpan.org/author/<% author.id
   %>"><% author.id %></a></td>
-<td class="date"><% author.start_date %></td>
-<td class="length"><% author.length %></td>
-<td class="ongoing"><% IF author.ongoing %>*<% END %></td>
-<td class="pcnt"><% author.percentage %></td>
+<td class="d"><% author.start_date %></td>
+<td class="l"><% author.length %></td>
+<td class="o"><% IF author.ongoing %>*<% END %></td>
+<td class="p"><% author.percentage %></td>
 </tr>
 <% END %>
 </tbody>
@@ -62,12 +62,12 @@ can be a new module, or just a new version of an existing module.</p>
 <tbody>
 <% WHILE (author = current()) %>
 <tr>
-<td class="rank"><% author.ranking %></td>
-<td class="aid"><a href="https://metacpan.org/author/<% author.id
+<td class="r"><% author.ranking %></td>
+<td class="a"><a href="https://metacpan.org/author/<% author.id
   %>"><% author.id %></a></td>
-<td class="date"><% author.start_date %></td>
-<td class="length"><% author.length %></td>
-<td class="pcnt"><% author.percentage %></td>
+<td class="d"><% author.start_date %></td>
+<td class="l"><% author.length %></td>
+<td class="p"><% author.percentage %></td>
 </tr>
 <% END %>
 </tbody>

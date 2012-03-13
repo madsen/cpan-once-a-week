@@ -23,13 +23,13 @@
 </thead>
 <tbody>
 <% WHILE (author = current()) %>
-<tr id="cpan-<% author.id %>">
-<td class="rank"><% author.ranking %></td>
-<td class="aid"><a href="https://metacpan.org/author/<% author.id
+<tr id="id<% author.id %>">
+<td class="r"><% author.ranking %></td>
+<td class="a"><a href="https://metacpan.org/author/<% author.id
   %>"><% author.id %></a></td>
-<td class="date"><% author.start_date %></td>
-<td class="length"><% author.length %></td>
-<td class="pcnt"><% author.percentage %></td>
+<td class="d"><% author.start_date %></td>
+<td class="l"><% author.length %></td>
+<td class="p"><% author.percentage %></td>
 </tr>
 <% END %>
 </tbody>
