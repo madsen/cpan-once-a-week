@@ -33,3 +33,5 @@ th { text-align: left; padding-right: 1em }
 .p { text-align: right; padding-right: 1em }
 
 #current_runs .l { padding-right: 2em }
+
+#ribbon { position: fixed; bottom: 0; left: 0; border: 0 }
