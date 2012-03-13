@@ -30,12 +30,18 @@ my $tt = Template->new({
   POST_CHOMP   => 1,
 });
 
+my $contestStart = DateTime->new(qw(year 2012 month 1 day 1 time_zone UTC));
 
 # Find the beginning of the current period (midnight UTC Sunday):
 my $currentPeriod = DateTime->today;
 $currentPeriod = $currentPeriod
-                   ->subtract(days => ($currentPeriod->day_of_week % 7))
-                   ->epoch;
+                   ->subtract(days => ($currentPeriod->day_of_week % 7));
+
+my $total_weeks = $currentPeriod->delta_days( $contestStart )
+                                ->in_units('weeks') + 1;
+my $one_week_percentage = 100 / $total_weeks;
+
+$currentPeriod = $currentPeriod->epoch;
 
 chomp(my $order_by = <<'');
 ORDER BY
@@ -93,6 +99,9 @@ sub begin_query
       }
     };
     $last_score = $new_score;
+
+    $row{percentage} = sprintf('%.0f%%',
+                               $row{active_weeks} * $one_week_percentage);
 
     $d = DateTime->from_epoch( epoch => $row{start} );
     $row{start_date} = sprintf '%s %d, %d', $d->month_abbr, $d->day, $d->year;

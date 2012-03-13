@@ -30,5 +30,6 @@ th { text-align: left; padding-right: 1em }
 .length { text-align: right }
 .note { text-align: center }
 .ongoing { width: 2em }
+.pcnt { text-align: right; padding-right: 1em }
 
 #current_runs .length { padding-right: 2em }
