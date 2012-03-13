@@ -8,6 +8,7 @@ a:hover { text-decoration: underline }
 body {
   background-color: white;
   color: black;
+  margin-left: 2em; margin-right: 2em;
   font-family: Verdana, Arial, "Times New Roman", Times, sans-serif;
 }
 
@@ -34,4 +35,5 @@ th { text-align: left; padding-right: 1em }
 
 #current_runs .l { padding-right: 2em }
 
-#ribbon { position: fixed; bottom: 0; left: 0; border: 0 }
+#contact { font-size: 85%; margin-top: 3ex; padding-right: 2em; text-align: right}
+#ribbon { position: fixed; bottom: 0; left: 0; border: 0; margin: 0; padding: 0 }
