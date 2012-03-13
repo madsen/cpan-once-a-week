@@ -1,3 +1,3 @@
 *.db
-backup.sql
+data/
 web/*.html
