@@ -10,7 +10,7 @@ Git submodule because I don't want to link it to any particular revision.)
 Recreating the Website
 ======================
 
-1. Make sure you've checked out the most recent release data into
+1. Make sure you've checked out the most recent [release data](https://github.com/madsen/cpan-once-a-week-data) into
 the `data/` subdirectory.
 
 2. Run the `createDB.pl` script to create `seinfeld.db` and populate
