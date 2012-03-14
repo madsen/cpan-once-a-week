@@ -1,0 +1,29 @@
+<table id="current_runs">
+<thead>
+<tr>
+<th>Rank</th>
+<th>Author</th>
+<th>Chain Started</th>
+<th>Weeks</th>
+<th>Active</th>
+</tr>
+</thead>
+<tbody>
+<% WHILE (author = current()) %>
+<tr<% IF author.endangered %> class="<% endangered %>"<% END ;
+IF row_id %> id="id<% author.id %>"<% END %>>
+<td class="r"><% author.ranking %></td>
+<td class="a"><a href="https://metacpan.org/author/<% author.id
+  %>"><% author.id %></a></td>
+<td class="d"><% author.start_date %></td>
+<td class="l"><% author.length %></td>
+<td class="p"><% author.percentage %></td>
+</tr>
+<% END %>
+</tbody>
+</table>
+<%#
+ Local Variables:
+ compile-command: "perl ../makeweb.pl"
+ End:
+%>
