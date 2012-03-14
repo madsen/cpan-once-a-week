@@ -1,3 +1,3 @@
 #! /bin/sh
 
-rsync "$@" -rlptgDv --delete '--filter=. filter.txt' web/ onceaweek:.
+exec rsync "$@" -rlptgDv --delete '--filter=. filter.txt' web/ onceaweek:.
