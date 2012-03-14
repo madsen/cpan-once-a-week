@@ -40,7 +40,7 @@ greatest collection of open-source code on the planet.</p>
 </thead>
 <tbody>
 <% WHILE (author = all_time()) %>
-<tr>
+<tr<% IF author.endangered %> class="<% endangered %>"<% END %>>
 <td class="r"><% author.ranking %></td>
 <td class="a"><a href="https://metacpan.org/author/<% author.id
   %>"><% author.id %></a></td>
@@ -54,6 +54,7 @@ greatest collection of open-source code on the planet.</p>
 </table>
 
 <p class="note">* indicates that the chain is not yet broken</p>
+<% INCLUDE endangered.htm %>
 
 <h2><a href="current">Longest Chains Still under Construction</a></h2>
 
@@ -69,7 +70,7 @@ greatest collection of open-source code on the planet.</p>
 </thead>
 <tbody>
 <% WHILE (author = current()) %>
-<tr>
+<tr<% IF author.endangered %> class="<% endangered %>"<% END %>>
 <td class="r"><% author.ranking %></td>
 <td class="a"><a href="https://metacpan.org/author/<% author.id
   %>"><% author.id %></a></td>

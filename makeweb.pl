@@ -33,15 +33,22 @@ my $tt = Template->new({
 my $contestStart = DateTime->new(qw(year 2012 month 1 day 1 time_zone UTC));
 
 # Find the beginning of the current period (midnight UTC Sunday):
-my $currentPeriod = DateTime->today;
-$currentPeriod = $currentPeriod
-                   ->subtract(days => ($currentPeriod->day_of_week % 7));
+my $today = DateTime->today;
+
+my $currentPeriod = $today->clone->subtract(days => ($today->day_of_week % 7));
 
 my $total_weeks = $currentPeriod->delta_days( $contestStart )
                                 ->in_units('weeks') + 1;
 my $one_week_percentage = 100 / $total_weeks;
 
 $currentPeriod = $currentPeriod->epoch;
+
+my @endangered_classes = (
+  ('')  x 3, # Sun - Tue: no indicator
+  ('y') x 2, # Wed - Thu: less than 96 hours to make a release = yellow
+  ('z') x 2  # Fri - Sat: less than 48 hours to make a release = red
+);
+my $endangered_class = $endangered_classes[ $today->day_of_week % 7 ];
 
 chomp(my $order_by = <<'');
 ORDER BY
@@ -55,7 +62,7 @@ SELECT
   longest_start AS start,
   longest_length AS length,
   active_weeks,
-  (last_end = $currentPeriod) AS endangered,
+  (last_start = longest_start AND last_end = $currentPeriod) AS endangered,
   (last_start = longest_start AND last_end >= $currentPeriod) AS ongoing
 FROM authors
 WHERE longest_length > 1
@@ -100,6 +107,7 @@ sub begin_query
     };
     $last_score = $new_score;
 
+    $row{endangered} = '' unless $endangered_class;
     $row{percentage} = sprintf('%.0f%%',
                                $row{active_weeks} * $one_week_percentage);
 
@@ -112,7 +120,9 @@ sub begin_query
 
 #---------------------------------------------------------------------
 my $fn   = 'index.html';
+my @common_data = (endangered => $endangered_class);
 my $data = {
+  @common_data,
   all_time => begin_query($all_time_query, 10),
   current  => begin_query($current_query, 10),
 };
@@ -121,13 +131,13 @@ $tt->process($fn, $data, $fn);
 
 #---------------------------------------------------------------------
 $fn   = 'longest.html';
-$data = { all_time => begin_query($all_time_query, 200) };
+$data = { @common_data, all_time => begin_query($all_time_query, 200) };
 
 $tt->process($fn, $data, $fn);
 
 #---------------------------------------------------------------------
 $fn   = 'current.html';
-$data = { current => begin_query($current_query, 0) };
+$data = { @common_data, current => begin_query($current_query, 0) };
 
 $tt->process($fn, $data, $fn);
 

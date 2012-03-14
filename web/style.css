@@ -17,12 +17,17 @@ h1, h2, h3 { text-align: center }
 h1 a { color: black !important }
 h1 a:hover { color: blue !important }
 
+p { margin: 1.777ex 0 }
+.block { border: thin solid black }
 .note { text-align: center }
 .tblNote { text-align: center; margin-top: -2ex }
+
+.note + .note { margin-top: -1.25ex }
 
 table {
   margin-left: auto;
   margin-right: auto;
+  border-collapse: collapse;
 }
 
 th { text-align: left; padding-right: 1em }
@@ -32,6 +37,9 @@ th { text-align: left; padding-right: 1em }
 .l { text-align: right }
 .o { width: 2em }
 .p { text-align: right; padding-right: 1em }
+
+.y { background-color: yellow }
+.z { background-color: #f77 }
 
 #current_runs .l { padding-right: 2em }
 

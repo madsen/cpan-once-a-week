@@ -23,7 +23,7 @@
 </thead>
 <tbody>
 <% WHILE (author = all_time()) %>
-<tr id="id<% author.id %>">
+<tr<% IF author.endangered %> class="<% endangered %>"<% END %> id="id<% author.id %>">
 <td class="r"><% author.ranking %></td>
 <td class="a"><a href="https://metacpan.org/author/<% author.id
   %>"><% author.id %></a></td>
@@ -37,6 +37,7 @@
 </table>
 
 <p class="note">* indicates that the chain is not yet broken</p>
+<% INCLUDE endangered.htm %>
 <% INCLUDE footer.htm %>
 </body>
 </html>
