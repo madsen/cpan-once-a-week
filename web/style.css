@@ -45,3 +45,4 @@ th { text-align: left; padding-right: 1em }
 
 #contact { font-size: 85%; margin-top: 3ex; padding-right: 2em; text-align: right}
 #ribbon { position: fixed; bottom: 0; left: 0; border: 0; margin: 0; padding: 0 }
+#ribbon img { border: none }
