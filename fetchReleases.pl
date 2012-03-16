@@ -145,6 +145,8 @@ my $seinfeld = DateTimeX::Seinfeld->new(
   increment  => { weeks => 1 },
 );
 
+my $updated;
+
 for my $aNum (values %author) {
   my $author = $db->selectrow_hashref($getAuthorInfo, undef, $aNum);
 
@@ -177,6 +179,7 @@ for my $aNum (values %author) {
 
   $info = $seinfeld->find_chains( $dates, $info );
 
+  ++$updated;
   $update->execute(
     $info->{longest}{start_period}->epoch, $info->{longest}{length},
     $info->{last}{start_period}->epoch, $info->{last}{end_period}->epoch,
@@ -186,3 +189,5 @@ for my $aNum (values %author) {
 } # end for each $aNum in %author
 
 $db->commit;
+
+exit( $updated ? 0 : 212 );

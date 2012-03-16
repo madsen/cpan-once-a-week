@@ -11,14 +11,27 @@ EOF
 
 MYDIR="$(dirname "$(readlink -f "$0")")"
 
-cd "$MYDIR"
+cd "$MYDIR" || exit 1
 
-./fetchReleases.pl && \
-./makeweb.pl && \
-./mirror.sh && \
-./backup.pl && \
-./data/commit.pl && \
-cd data && \
-git push github master
+# Fetch new releases and update chains:
+./fetchReleases.pl
 
-exit $?
+case $? in
+ 212) ;;                        # No new releases
+
+ 0) ./makeweb.pl || exit 1      # New releases, update website
+    ./mirror.sh  || exit 1
+    ;;
+
+ *)   exit 1 ;;
+esac
+
+# Commit release data to Git once a day:
+if [ $(date -u '+%H') -eq 0 ] ; then
+  ./backup.pl            || exit 1
+  ./data/commit.pl       || exit 1
+  cd data                || exit 1
+  git push github master || exit 1
+fi
+
+exit 0
