@@ -23,8 +23,7 @@ my $url = "http://api.metacpan.org/v0/release/_search?size=$maxHits";
 my $queryFormat = <<'END QUERY';
 {
   "sort": [ { "release.date" : "asc" } ],
-  "fields": ["release.author", "release.distribution", "release.date",
-             "release.version_numified"],
+  "fields": ["release.author", "release.archive", "release.date"],
   "query": {
     "range" : {
         "release.date" : {
@@ -64,19 +63,12 @@ SELECT author_num FROM authors WHERE author_id = ?
 my $addAuthor = $db->prepare(<<'');
 INSERT INTO authors (author_id) VALUES (?)
 
-my $getDist = $db->prepare(<<'');
-SELECT dist_id FROM dists WHERE dist_name = ?
-
-my $addDist = $db->prepare(<<'');
-INSERT INTO dists (dist_name) VALUES (?)
-
 my $addRelease = $db->prepare(<<'');
 INSERT OR IGNORE INTO releases
-(author_num, dist_id, version, date) VALUES (?,?,?, strftime('%s', ?))
+(author_num, filename, date) VALUES (?,?, strftime('%s', ?))
 
-my (%author, %dist);
+my (%author);
 my @author = (\%author, $getAuthor, $addAuthor);
-my @dist   = (\%dist,   $getDist,   $addDist);
 
 #---------------------------------------------------------------------
 my $ua = LWP::UserAgent->new;
@@ -111,8 +103,7 @@ for (;;) {
     $date = $field->{date};
 
     $addRelease->execute( getID(@author, $field->{author}),
-                          getID(@dist,   $field->{distribution}),
-                          @$field{qw(version_numified date)} );
+                          @$field{qw(archive date)} );
   } # end foreach $hit in @$hits
 
   $db->commit;

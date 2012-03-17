@@ -29,8 +29,7 @@ my $db = DBI->connect("dbi:SQLite:dbname=seinfeld.db","","",
 $db->do("PRAGMA foreign_keys = ON");
 
 backup(qw(authors  author_num  author_num author_id));
-backup(qw(dists    dist_id     dist_id dist_name));
-backup(qw(releases release_id  author_num dist_id version date));
+backup(qw(releases release_id  author_num filename date));
 
 $db->disconnect;
 

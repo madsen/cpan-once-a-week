@@ -38,19 +38,12 @@ CREATE TABLE authors (
 )
 
 $db->do(<<'');
-CREATE TABLE dists (
-  dist_id    INTEGER PRIMARY KEY,
-  dist_name  TEXT NOT NULL UNIQUE
-)
-
-$db->do(<<'');
 CREATE TABLE releases (
   release_id INTEGER PRIMARY KEY,
   author_num INTEGER NOT NULL REFERENCES authors,
-  dist_id    INTEGER NOT NULL REFERENCES dists,
-  version    REAL NOT NULL,
+  filename   TEXT NOT NULL,
   date       TIMESTAMP NOT NULL,
-  UNIQUE(author_num, dist_id, version)
+  UNIQUE(author_num, filename)
 )
 
 $db->do(<<'');
@@ -66,9 +59,9 @@ FROM authors
 
 $db->do(<<'');
 CREATE VIEW release_info AS
-SELECT release_id, author_id, dist_name, version,
+SELECT release_id, author_id, filename,
        datetime(date, 'unixepoch') AS date
-FROM releases NATURAL JOIN authors NATURAL JOIN dists
+FROM releases NATURAL JOIN authors
 
 $db->commit;
 
@@ -76,7 +69,7 @@ $db->commit;
 my $csv = Text::CSV->new({ binary => 1, eol => "\x0A" })
     or die "Cannot use CSV: " . Text::CSV->error_diag;
 
-for my $table (qw(authors dists releases)) {
+for my $table (qw(authors releases)) {
   my $fn = "data/$table.csv";
 
   die "Unable to restore $table: $fn not found\n" unless -e $fn;
