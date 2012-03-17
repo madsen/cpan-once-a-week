@@ -20,7 +20,8 @@ $db->do("PRAGMA foreign_keys = ON");
 my $author_nums = $db->selectcol_arrayref('SELECT author_num FROM authors');
 
 my $getReleases = $db->prepare(<<'');
-SELECT date FROM releases WHERE author_num = ? ORDER BY date
+SELECT date FROM releases WHERE author_num = ? AND date >= 1325376000
+  ORDER BY date
 
 my $update = $db->prepare(<<'');
 UPDATE authors SET longest_start = ?, longest_length = ?,
