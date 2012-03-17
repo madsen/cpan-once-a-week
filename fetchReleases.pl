@@ -101,6 +101,7 @@ for (;;) {
     my $field = $hit->{fields};
 
     $date = $field->{date};
+    $field->{archive} =~ s!^.*/!!; # remove directories
 
     $addRelease->execute( getID(@author, $field->{author}),
                           @$field{qw(archive date)} );
