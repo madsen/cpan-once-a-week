@@ -30,18 +30,17 @@ my $tt = Template->new({
   POST_CHOMP   => 1,
 });
 
-my $contestStart = DateTime->new(qw(year 2012 month 1 day 1 time_zone UTC));
+my %start_time = (
+  con  => DateTime->new(qw(year 2012 month 1 day  1 time_zone UTC)),
+  hist => DateTime->new(qw(year 1995 month 8 day 13 time_zone UTC)),
+);
 
 # Find the beginning of the current period (midnight UTC Sunday):
 my $today = DateTime->today;
 
-my $currentPeriod = $today->clone->subtract(days => ($today->day_of_week % 7));
+my $current_period = $today->clone->subtract(days => ($today->day_of_week % 7));
 
-my $total_weeks = $currentPeriod->delta_days( $contestStart )
-                                ->in_units('weeks') + 1;
-my $one_week_percentage = 100 / $total_weeks;
-
-$currentPeriod = $currentPeriod->epoch;
+my $curPeriod = $current_period->epoch;
 
 my @endangered_classes = (
   ('')  x 3, # Sun - Tue: no indicator
@@ -56,35 +55,51 @@ ORDER BY
   active_weeks DESC,
   author_id ASC
 
-my $all_time_query = <<"";
+my %query_creator = (
+  all_time => sub {
+    my $type = shift;
+    return <<"";
 SELECT
   author_id AS id,
-  longest_start AS start,
-  longest_length AS length,
-  active_weeks,
-  (last_start = longest_start AND last_end = $currentPeriod) AS endangered,
-  (last_start = longest_start AND last_end >= $currentPeriod) AS ongoing
+  ${type}_longest_start AS start,
+  ${type}_longest_length AS length,
+  ${type}_active_weeks AS active_weeks,
+  (${type}_last_start = ${type}_longest_start
+   AND ${type}_last_end = $curPeriod) AS endangered,
+  (${type}_last_start = ${type}_longest_start
+   AND ${type}_last_end >= $curPeriod) AS ongoing
 FROM authors
-WHERE longest_length > 1
+WHERE ${type}_longest_length > 1
 $order_by
 
-my $current_query = <<"";
+  }, # end all_time
+
+  current => sub {
+  my $type = shift;
+  return <<"";
 SELECT
   author_id AS id,
-  last_start AS start,
-  last_length AS length,
-  active_weeks,
-  (last_end = $currentPeriod) AS endangered
+  ${type}_last_start AS start,
+  ${type}_last_length AS length,
+  ${type}_active_weeks AS active_weeks,
+  (${type}_last_end = $curPeriod) AS endangered
 FROM authors
-WHERE last_end >= $currentPeriod AND last_length > 1
+WHERE ${type}_last_end >= $curPeriod AND ${type}_last_length > 1
 $order_by
+
+  }, # end current
+); # end %query_creator
 
 sub begin_query
 {
-  my ($query, $limit) = @_;
+  my ($type, $query, $limit) = @_;
+
+  my $total_weeks = $current_period->delta_days( $start_time{$type} )
+                                   ->in_units('weeks') + 1;
+  my $one_week_percentage = 100 / $total_weeks;
 
   my (%row, $rank, $last_score, $new_score, $d);
-  my $s = $db->prepare($query);
+  my $s = $db->prepare($query_creator{$query}->($type));
   $s->execute;
   $s->bind_columns( \( @row{ @{$s->{NAME_lc} } } ));
 
@@ -123,21 +138,28 @@ my $fn   = 'index.html';
 my @common_data = (endangered => $endangered_class);
 my $data = {
   @common_data,
-  all_time => begin_query($all_time_query, 10),
-  current  => begin_query($current_query, 10),
+  all_time   => begin_query(qw(con  all_time), 10),
+  current    => begin_query(qw(con  current),  10),
+  historical => begin_query(qw(hist all_time), 10),
 };
 
 $tt->process($fn, $data, $fn);
 
 #---------------------------------------------------------------------
 $fn   = 'longest.html';
-$data = { @common_data, all_time => begin_query($all_time_query, 200) };
+$data = { @common_data, all_time => begin_query(qw(con all_time), 200) };
 
 $tt->process($fn, $data, $fn);
 
 #---------------------------------------------------------------------
 $fn   = 'current.html';
-$data = { @common_data, current => begin_query($current_query, 0) };
+$data = { @common_data, current => begin_query(qw(con current), 0) };
+
+$tt->process($fn, $data, $fn);
+
+#---------------------------------------------------------------------
+$fn   = 'historical.html';
+$data = { @common_data, all_time => begin_query(qw(hist all_time), 200) };
 
 $tt->process($fn, $data, $fn);
 

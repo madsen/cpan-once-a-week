@@ -119,24 +119,39 @@ my $getReleases = $db->prepare(<<'');
 SELECT date FROM releases WHERE author_num = ? AND date > ? ORDER BY date
 
 my $getAuthorInfo = $db->prepare(<<'');
-SELECT longest_start, longest_length,
-  last_start, last_end,
-  last_release, last_length,
-  active_weeks, total_releases
+SELECT con_longest_start, con_longest_length,
+  con_last_start, con_last_end, con_last_length,
+  con_active_weeks, con_total_releases,
+  hist_longest_start, hist_longest_length,
+  hist_last_start, hist_last_end, hist_last_length,
+  hist_active_weeks, hist_total_releases,
+  last_release
   FROM authors WHERE author_num = ?
 
 my $update = $db->prepare(<<'');
-UPDATE authors SET longest_start = ?, longest_length = ?,
-  last_start = ?, last_end = ?,
-  last_release = ?, last_length = ?,
-  active_weeks = ?, total_releases = ?
+UPDATE authors SET
+  con_longest_start = ?, con_longest_length = ?,
+  con_last_start = ?, con_last_end = ?, con_last_length = ?,
+  con_active_weeks = ?, con_total_releases = ?,
+  hist_longest_start = ?, hist_longest_length = ?,
+  hist_last_start = ?, hist_last_end = ?, hist_last_length = ?,
+  hist_active_weeks = ?, hist_total_releases = ?,
+  last_release = ?
   WHERE author_num = ?
 
-my $seinfeld = DateTimeX::Seinfeld->new(
-  start_date => {qw(year 2012 month 1 day 1 time_zone UTC)},
-  increment  => { weeks => 1 },
+my %seinfeld = (
+  con => DateTimeX::Seinfeld->new(
+    start_date => {qw(year 2012 month 1 day 1 time_zone UTC)},
+    increment  => { weeks => 1 },
+  ),
+
+  hist => DateTimeX::Seinfeld->new(
+    start_date => {qw(year 1995 month 8 day 13 time_zone UTC)},
+    increment  => { weeks => 1 },
+  ),
 );
 
+my $contest_start = $seinfeld{con}->start_date;
 my $updated;
 
 for my $aNum (values %author) {
@@ -148,36 +163,44 @@ for my $aNum (values %author) {
   next unless @$dates;
 
   for (@$dates,
-       @$author{qw(longest_start last_start last_end last_release)}) {
+       @$author{qw(con_longest_start con_last_start con_last_end
+                   hist_longest_start hist_last_start hist_last_end
+                   last_release)}) {
     $_ = DateTime->from_epoch(epoch => $_) if defined $_;
   }
 
-  my $info;
-  if ($author->{last_length}) {
-    $info = {
-      longest => {
-        start_period => $author->{longest_start},
-        length       => $author->{longest_length},
-      },
-      last    => {
-        start_period => $author->{last_start},
-        end_period   => $author->{last_end},
-        end_event    => $author->{last_release},
-        length       => $author->{last_length},
-      },
-      marked_periods => $author->{active_weeks},
-    };
-  } # end if author has existing chains
+  my @values;
+  for my $type (qw(con hist)) {
+    my $info;
+    if ($author->{"${type}_last_length"}) {
+      $info = {
+        longest => {
+          start_period => $author->{"${type}_longest_start"},
+          length       => $author->{"${type}_longest_length"},
+        },
+        last    => {
+          start_period => $author->{"${type}_last_start"},
+          end_period   => $author->{"${type}_last_end"},
+          end_event    => $author->{last_release},
+          length       => $author->{"${type}_last_length"},
+        },
+        marked_periods => $author->{"${type}_active_weeks"},
+      };
+    } # end if author has existing chains
 
-  $info = $seinfeld->find_chains( $dates, $info );
+    $info = $seinfeld{$type}->find_chains( $dates, $info );
+
+    push @values,
+      $info->{longest}{start_period}->epoch, $info->{longest}{length},
+      $info->{last}{start_period}->epoch, $info->{last}{end_period}->epoch,
+      $info->{last}{length},
+      $info->{marked_periods}, $author->{"${type}_total_releases"} + @$dates;
+
+    push @values, $info->{last}{end_event}->epoch if $type eq 'hist';
+  } # end foreach $type
 
   ++$updated;
-  $update->execute(
-    $info->{longest}{start_period}->epoch, $info->{longest}{length},
-    $info->{last}{start_period}->epoch, $info->{last}{end_period}->epoch,
-    $info->{last}{end_event}->epoch, $info->{last}{length},
-    $info->{marked_periods}, $author->{total_releases} + @$dates, $aNum
-  );
+  $update->execute(@values, $aNum);
 } # end for each $aNum in %author
 
 $db->commit;

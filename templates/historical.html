@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<% INCLUDE head.htm %>
+<title>All-Time Longest Chains &mdash; The CPAN &ldquo;Once a Week, Every Week&rdquo; Contest</title>
+</head>
+<body>
+<% INCLUDE header.htm %>
+<h1><a href="./">The CPAN &ldquo;Once a Week, Every Week&rdquo; Contest</a></h1>
+
+<p>While the idea of this contest wasn&rsquo;t proposed until 2012,
+it&rsquo;s interesting to go back to the start of the CPAN and see who
+made long release chains even when they weren&rsquo;t trying to.</p>
+
+<h2>The 200 Longest Chains of All Time</h2>
+<p class="tblNote">Starting from August 16, 1995</p>
+
+<% SET row_id = 1 ; INCLUDE longest_table.htm %>
+<% INCLUDE footer.htm %>
+</body>
+</html>
+<%#
+ Local Variables:
+ compile-command: "perl ../makeweb.pl"
+ End:
+%>
