@@ -11,7 +11,7 @@
 <tbody>
 <% WHILE (author = current()) %>
 <tr<% IF author.endangered %> class="<% endangered %>"<% END ;
-IF row_id %> id="id<% author.id %>"<% END %>>
+IF row_id %> id="<% make_row_id(author.id) %>"<% END %>>
 <td class="r"><% author.ranking %></td>
 <td class="a"><a href="https://metacpan.org/author/<% author.id
   %>"><% author.id %></a></td>

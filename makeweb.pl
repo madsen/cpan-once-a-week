@@ -58,18 +58,30 @@ ORDER BY
 my %query_creator = (
   all_time => sub {
     my $type = shift;
+    # If an author's longest chain is longer than his current chain,
+    # both chains are eligible for the all_time list.  Otherwise, only
+    # the current chain is considered.  This allows authors with a
+    # record chain to see how their current effort is going.
     return <<"";
+SELECT
+  author_id AS id,
+  ${type}_last_start AS start,
+  ${type}_last_length AS length,
+  ${type}_active_weeks AS active_weeks,
+  (${type}_last_end = $curPeriod) AS endangered,
+  (${type}_last_end >= $curPeriod) AS ongoing
+FROM authors
+WHERE ${type}_last_length > 1
+UNION
 SELECT
   author_id AS id,
   ${type}_longest_start AS start,
   ${type}_longest_length AS length,
   ${type}_active_weeks AS active_weeks,
-  (${type}_last_start = ${type}_longest_start
-   AND ${type}_last_end = $curPeriod) AS endangered,
-  (${type}_last_start = ${type}_longest_start
-   AND ${type}_last_end >= $curPeriod) AS ongoing
+  0 AS endangered,
+  0 AS ongoing
 FROM authors
-WHERE ${type}_longest_length > 1
+WHERE ${type}_longest_length > ${type}_last_length
 $order_by
 
   }, # end all_time
@@ -134,34 +146,44 @@ sub begin_query
 } # end begin_query
 
 #---------------------------------------------------------------------
-my $fn   = 'index.html';
-my @common_data = (endangered => $endangered_class);
-my $data = {
-  @common_data,
+my %id_used;
+sub make_row_id
+{
+  my $id = shift;
+
+  die "ID $id already used" if $id_used{$id}++ and $id_used{$id .= '.c'}++;
+
+  "id$id";
+} # end make_row_id
+
+#---------------------------------------------------------------------
+sub page
+{
+  my ($fn, $data) = @_;
+
+  $data->{endangered}  = $endangered_class;
+  $data->{make_row_id} = \&make_row_id;
+
+  %id_used = ();
+
+  $tt->process($fn, $data, $fn);
+} # end page
+
+#=====================================================================
+page('index.html' => {
   all_time   => begin_query(qw(con  all_time), 10),
   current    => begin_query(qw(con  current),  10),
   historical => begin_query(qw(hist all_time), 10),
-};
-
-$tt->process($fn, $data, $fn);
+});
 
 #---------------------------------------------------------------------
-$fn   = 'longest.html';
-$data = { @common_data, all_time => begin_query(qw(con all_time), 200) };
-
-$tt->process($fn, $data, $fn);
+page('longest.html', { all_time => begin_query(qw(con all_time), 200) });
 
 #---------------------------------------------------------------------
-$fn   = 'current.html';
-$data = { @common_data, current => begin_query(qw(con current), 0) };
-
-$tt->process($fn, $data, $fn);
+page('current.html', { current => begin_query(qw(con current), 0) });
 
 #---------------------------------------------------------------------
-$fn   = 'historical.html';
-$data = { @common_data, all_time => begin_query(qw(hist all_time), 200) };
-
-$tt->process($fn, $data, $fn);
+page('historical.html', { all_time => begin_query(qw(hist all_time), 200) });
 
 #---------------------------------------------------------------------
 $db->disconnect;
