@@ -110,7 +110,7 @@ sub begin_query
                                    ->in_units('weeks') + 1;
   my $one_week_percentage = 100 / $total_weeks;
 
-  my (%row, $rank, $last_score, $new_score, $d);
+  my (%id_used, %row, $rank, $last_score, $new_score, $d);
   my $s = $db->prepare($query_creator{$query}->($type));
   $s->execute;
   $s->bind_columns( \( @row{ @{$s->{NAME_lc} } } ));
@@ -134,6 +134,15 @@ sub begin_query
     };
     $last_score = $new_score;
 
+    $row{row_id} = do {
+      my $id = "id$row{id}";
+
+      die "ID $row{id} already seen twice"
+        if $id_used{$id}++ and $id_used{$id .= '.c'}++;
+
+      $id;
+    };
+
     $row{endangered} = '' unless $endangered_class;
     $row{percentage} = sprintf('%.0f%%',
                                $row{active_weeks} * $one_week_percentage);
@@ -146,25 +155,11 @@ sub begin_query
 } # end begin_query
 
 #---------------------------------------------------------------------
-my %id_used;
-sub make_row_id
-{
-  my $id = shift;
-
-  die "ID $id already used" if $id_used{$id}++ and $id_used{$id .= '.c'}++;
-
-  "id$id";
-} # end make_row_id
-
-#---------------------------------------------------------------------
 sub page
 {
   my ($fn, $data) = @_;
 
   $data->{endangered}  = $endangered_class;
-  $data->{make_row_id} = \&make_row_id;
-
-  %id_used = ();
 
   $tt->process($fn, $data, $fn);
 } # end page
