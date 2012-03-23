@@ -1,0 +1,21 @@
+a        The column containing the author's id
+
+block    The span used to provide a sample of the endangered indicator color
+
+d        The column containing the start date
+
+l        The column containing the chain length
+
+note     A paragraph appearing below a <table>
+
+o        The column containing the * indicating an ongoing chain
+
+p        The column containing the active percentage
+
+r        The column containing the author's rank
+
+tblNote  A paragraph appearing between the <h2> and a <table>
+
+y        A row showing a chain in danger of breaking in < 96 hours
+
+z        A row showing a chain in danger of breaking in < 48 hours
