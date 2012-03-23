@@ -58,10 +58,14 @@ ORDER BY
 my %query_creator = (
   all_time => sub {
     my $type = shift;
-    # If an author's longest chain is longer than his current chain,
-    # both chains are eligible for the all_time list.  Otherwise, only
-    # the current chain is considered.  This allows authors with a
-    # record chain to see how their current effort is going.
+    # If an author has a chain under construction (a "current chain"):
+    #   If an author's longest chain is longer than his current chain,
+    #   both chains are eligible for the all_time list.  Otherwise,
+    #   only the current chain is considered.  This allows authors
+    #   with a record chain to see how their current effort is going.
+    #
+    # Else for authors without a current chain:
+    #   Only the longest chain is considered.
     return <<"";
 SELECT
   author_id AS id,
@@ -69,9 +73,9 @@ SELECT
   ${type}_last_length AS length,
   ${type}_active_weeks AS active_weeks,
   (${type}_last_end = $curPeriod) AS endangered,
-  (${type}_last_end >= $curPeriod) AS ongoing
+  1 AS ongoing
 FROM authors
-WHERE ${type}_last_length > 1
+WHERE ${type}_last_length > 1 AND ${type}_last_end >= $curPeriod
 UNION
 SELECT
   author_id AS id,
@@ -82,6 +86,7 @@ SELECT
   0 AS ongoing
 FROM authors
 WHERE ${type}_longest_length > ${type}_last_length
+  OR (${type}_longest_length > 1 AND ${type}_last_end < $curPeriod)
 $order_by
 
   }, # end all_time
