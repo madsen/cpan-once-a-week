@@ -13,28 +13,16 @@ use 5.010;
 use DateTime ();
 use DateTimeX::Seinfeld 0.02 ();
 use DBI ();
-use JSON qw(decode_json);
-use LWP::UserAgent ();
+use ElasticSearch ();
 
 #---------------------------------------------------------------------
-my $maxHits = 100;
-my $url = "http://api.metacpan.org/v0/release/_search?size=$maxHits";
-
-my $queryFormat = <<'END QUERY';
-{
-  "sort": [ { "release.date" : "asc" } ],
-  "fields": ["release.author", "release.archive", "release.date"],
-  "query": {
-    "range" : {
-        "release.date" : {
-            "from" : "%s"
-        }
-    }
-  }
-}
-END QUERY
-
-$queryFormat =~ s/\s{2,}/ /g;   # compress it
+my $size = 100;
+my $es = ElasticSearch->new(
+  servers      => 'api.metacpan.org:80',
+  transport    => 'httptiny',
+  max_requests => 0,
+  no_refresh   => 1,
+);
 
 #---------------------------------------------------------------------
 my $db = DBI->connect("dbi:SQLite:dbname=seinfeld.db","","",
@@ -71,8 +59,6 @@ my (%author);
 my @author = (\%author, $getAuthor, $addAuthor);
 
 #---------------------------------------------------------------------
-my $ua = LWP::UserAgent->new;
-
 my $date = $db->selectrow_array('SELECT MAX(date) FROM releases');
 
 if ($date) {
@@ -87,30 +73,32 @@ if ($date) {
 #---------------------------------------------------------------------
 # Fetch release data:
 
-for (;;) {
-  my $r = $ua->post($url, 'Content-Type' => 'application/json; charset=UTF-8',
-                    Content => sprintf $queryFormat, $date);
+my $scroller = $es->scrolled_search(
+  index  => 'v0',
+  type   => 'release',
+  query  => { range => { date => { gte => $date } } },
+  scroll => '2h',
+  size   => $size,
+  fields => [qw(author archive date)],
+  sort   => [ { "date" => "asc" } ],
+);
 
-  die $r->status_line unless $r->is_success;
-
-  my $json = decode_json( $r->decoded_content );
-
-  my $hits = $json->{hits}{hits};
-
-  foreach my $hit (@$hits) {
+while (my @hits = $scroller->next($size)) {
+  foreach my $hit (@hits) {
     my $field = $hit->{fields};
 
-    $date = $field->{date};
     $field->{archive} =~ s!^.*/!!; # remove directories
+
+    ### say "@$field{qw(date author archive)}";
 
     $addRelease->execute( getID(@author, $field->{author}),
                           @$field{qw(archive date)} );
-  } # end foreach $hit in @$hits
+  } # end foreach $hit in @hits
 
   $db->commit;
 
-  last if @$hits < $maxHits;
-} # end forever
+  sleep 2 unless $scroller->eof;
+} # end while hits
 
 #---------------------------------------------------------------------
 # Update chains for authors with new releases:
