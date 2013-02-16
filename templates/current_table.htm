@@ -5,7 +5,7 @@
 <th>Author</th>
 <th>Chain Started</th>
 <th>Weeks</th>
-<th>Active</th>
+<th colspan="2">Active</th>
 </tr>
 </thead>
 <tbody>
@@ -18,6 +18,7 @@ IF row_id %> id="<% author.row_id %>"<% END %>>
 <td class="d"><% author.start_date %></td>
 <td class="l"><% author.length %></td>
 <td class="p"><% author.percentage %></td>
+<td class="s"><img src="https://metacpan.org/activity?res=month;author=<% author.id %>" /></td>
 </tr>
 <% END %>
 </tbody>
