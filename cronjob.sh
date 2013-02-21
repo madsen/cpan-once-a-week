@@ -13,7 +13,10 @@ MYDIR="$(dirname "$(readlink -f "$0")")"
 
 cd "$MYDIR" || exit 1
 
-hour=$(date -u '+%H')
+hour=$(date -u '+%-H')
+
+# Only run on even hours:
+[ $((hour%2)) -eq 1 ] && exit 0
 
 # Fetch new releases and update chains:
 ./fetchReleases.pl
