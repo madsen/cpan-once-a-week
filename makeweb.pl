@@ -188,7 +188,12 @@ page('index.html' => {
 page('longest.html', { all_time => begin_query(qw(2012 all_time), 200) });
 
 #---------------------------------------------------------------------
-page('current.html', { current => begin_query(qw(2012 current), 0) });
+my $current = 0;
+for my $year ( grep /^\d+$/, keys %$contests ) {
+    $current = $year if $year > $current;
+    page('current.html', { current => begin_query( $year, 'current', 0) }, "$year.html");
+}
+page('current.html', { current => begin_query( $current, 'current', 0) });
 
 #---------------------------------------------------------------------
 page('historical.html', { all_time => begin_query('All Time', 'all_time', 200) });
