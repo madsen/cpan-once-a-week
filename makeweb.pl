@@ -109,7 +109,7 @@ SELECT
   (last_end = $curPeriod) AS endangered
 FROM standings NATURAL LEFT JOIN authors
 WHERE contest_id = $contests->{$type}{contest_id}
-  AND last_end >= $curPeriod AND last_length > 1
+  AND last_length > 1
 $order_by
 
   }, # end current
