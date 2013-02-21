@@ -30,15 +30,17 @@ greatest collection of open-source code on the planet.</p>
 headings to see the full lists.</p>
 
 <h2><a href="longest">Longest Chains in the Contest</a></h2>
+<p class="tblNote">Starting from <% start_date.strftime("%b %d, %Y") %></p>
 
 <% INCLUDE longest_table.htm %>
 
 <h2><a href="current">Longest Chains Still under Construction</a></h2>
+<p class="tblNote">Starting from <% start_date.strftime("%b %d, %Y") %></p>
 
 <% INCLUDE current_table.htm %>
 
 <h2><a href="historical">Longest Chains of All Time</a></h2>
-<p class="tblNote">The contest began January 1, 2012,<br>
+<p class="tblNote">The contest began <% start_date.strftime("%b %d, %Y") %><br>
 but CPAN began on August 16, 1995.<br>
 These authors didn&rsquo;t even know they were competing.</p>
 

@@ -2,14 +2,18 @@
 <html>
 <head>
 <% INCLUDE head.htm %>
-<title>Longest Chains &mdash; The CPAN &ldquo;Once a Week, Every Week&rdquo; Contest</title>
+<title>Longest Chains in the <% year %> Contest &mdash; The CPAN &ldquo;Once a Week, Every Week&rdquo; Contest</title>
 </head>
 <body>
 <% INCLUDE header.htm %>
 <h1><a href="./">The CPAN &ldquo;Once a Week, Every Week&rdquo; Contest</a></h1>
 
-<h2>The 200 Longest Chains</h2>
-<p class="tblNote">Starting from January 1, 2012</p>
+<h2>The 200 Longest Chains for the <% year %> Contest</h2>
+<% IF end_date %>
+<p class="tblNote">From <% start_date.strftime("%b %d, %Y") %> until <% end_date.strftime("%b %d, %Y") %></p>
+<% ELSE %>
+<p class="tblNote">Starting from <% start_date.strftime("%b %d, %Y") %></p>
+<% END %>
 
 <% SET row_id = 1 ; INCLUDE longest_table.htm %>
 <% INCLUDE footer.htm %>

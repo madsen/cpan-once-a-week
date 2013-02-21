@@ -8,8 +8,15 @@
 <% INCLUDE header.htm %>
 <h1><a href="./">The CPAN &ldquo;Once a Week, Every Week&rdquo; Contest</a></h1>
 
+<% IF end_date %>
+<h2>Chains for the <% year %> Contest</h2>
+<p class="tblNote">From <% start_date.strftime("%b %d, %Y") %> until <% end_date.strftime("%b %d, %Y") %></p>
+<% ELSE %>
 <h2>Chains Still under Construction</h2>
+<p class="tblNote">Starting from <% start_date.strftime("%b %d, %Y") %></p>
+<% END %>
 
+</p>
 <p class="tblNote">All authors whose chain is at least two weeks long</p>
 
 <% SET row_id = 1 ; INCLUDE current_table.htm %>

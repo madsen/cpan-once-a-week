@@ -182,19 +182,41 @@ sub page
 my $current = 0;
 for my $year ( grep /^\d+$/, keys %$contests ) {
     $current = $year if $year > $current;
-    page('current.html', { current => begin_query( $year, 'current', 0) }, "$year.html");
+    page(
+        'longest.html',
+        {   all_time   => begin_query( $year, 'all_time', 0 ),
+            start_date => $contests->{$year}{start_date},
+            end_date   => $contests->{$year}{end_date},
+            year       => $year,
+        },
+        "$year.html"
+    );
 }
-page('current.html', { current => begin_query( $current, 'current', 0) });
+page(
+    'current.html',
+    {   current    => begin_query( $current, 'current', 0 ),
+        start_date => $contests->{$current}{start_date},
+        year       => $current,
+    }
+);
 
 #---------------------------------------------------------------------
 page('index.html' => {
   all_time   => begin_query($current, 'all_time', 10),
   current    => begin_query($current, 'current',  10),
   historical => begin_query('All Time', 'all_time', 10),
+  start_date => $contests->{$current}{start_date},
+  year       => $current,
 });
 
 #---------------------------------------------------------------------
-page('longest.html', { all_time => begin_query($current, 'all_time', 200) });
+page(
+    'longest.html',
+    {   all_time   => begin_query( $current, 'all_time', 200 ),
+        start_date => $contests->{$current}{start_date},
+        year       => $current,
+    }
+);
 
 #---------------------------------------------------------------------
 page('historical.html', { all_time => begin_query('All Time', 'all_time', 200) });
