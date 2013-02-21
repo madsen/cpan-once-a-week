@@ -120,8 +120,8 @@ sub begin_query
   my ($type, $query, $limit) = @_;
 
   my $total_weeks = ( $contests->{$type}{end_date} || $current_period )
-    ->delta_days( $contests->{$type}{start_date} )
-                                   ->in_units('weeks') + 1;
+    ->delta_days( $contests->{$type}{start_date} )->in_units('weeks');
+  $total_weeks += 1 if !$contests->{$type}{end_date};
   my $one_week_percentage = 100 / $total_weeks;
 
   my (%id_used, %row, $rank, $last_score, $new_score, $d);
