@@ -180,7 +180,7 @@ sub page
 #=====================================================================
 page('index.html' => {
   all_time   => begin_query(qw(2012 all_time), 10),
-  current    => begin_query(qw(2012 current),  10),
+  current    => begin_query(qw(2013 current),  10),
   historical => begin_query('All Time', 'all_time', 10),
 });
 
