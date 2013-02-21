@@ -29,6 +29,7 @@ my $db = DBI->connect("dbi:SQLite:dbname=seinfeld.db","","",
 $db->do("PRAGMA foreign_keys = ON");
 
 backup(qw(authors  author_num  author_num author_id));
+backup(qw(contests contest_id  contest_id contest_name start_date end_date));
 backup(qw(releases release_id  author_num filename date));
 
 $db->disconnect;

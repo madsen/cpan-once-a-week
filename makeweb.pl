@@ -21,6 +21,7 @@ chdir $Bin or die $!;
 my $db = DBI->connect("dbi:SQLite:dbname=seinfeld.db","","",
                       { AutoCommit => 1, PrintError => 0, RaiseError => 1 });
 $db->do("PRAGMA foreign_keys = ON");
+$db->{FetchHashKeyName} = 'NAME_lc';
 
 my $tt = Template->new({
   INCLUDE_PATH => "$Bin/templates",
@@ -30,10 +31,14 @@ my $tt = Template->new({
   POST_CHOMP   => 1,
 });
 
-my %start_time = (
-  con  => DateTime->new(qw(year 2012 month 1 day  1 time_zone UTC)),
-  hist => DateTime->new(qw(year 1995 month 8 day 13 time_zone UTC)),
-);
+# Read information about contests
+my $contests = $db->selectall_hashref('SELECT * FROM contests', 'contest_name');
+
+foreach my $contest (values %$contests) {
+  for (@$contest{qw(start_date end_date)}) {
+    $_ = DateTime->from_epoch(epoch => $_) if defined $_;
+  }
+}
 
 # Find the beginning of the current period (midnight UTC Sunday):
 my $today = DateTime->today;
@@ -69,24 +74,26 @@ my %query_creator = (
     return <<"";
 SELECT
   author_id AS id,
-  ${type}_last_start AS start,
-  ${type}_last_length AS length,
-  ${type}_active_weeks AS active_weeks,
-  (${type}_last_end = $curPeriod) AS endangered,
+  last_start AS start,
+  last_length AS length,
+  active_weeks AS active_weeks,
+  (last_end = $curPeriod) AS endangered,
   1 AS ongoing
-FROM authors
-WHERE ${type}_last_length > 1 AND ${type}_last_end >= $curPeriod
+FROM standings NATURAL LEFT JOIN authors
+WHERE contest_id = $contests->{$type}{contest_id}
+  AND last_length > 1 AND last_end >= $curPeriod
 UNION
 SELECT
   author_id AS id,
-  ${type}_longest_start AS start,
-  ${type}_longest_length AS length,
-  ${type}_active_weeks AS active_weeks,
+  longest_start AS start,
+  longest_length AS length,
+  active_weeks AS active_weeks,
   0 AS endangered,
   0 AS ongoing
-FROM authors
-WHERE ${type}_longest_length > ${type}_last_length
-  OR (${type}_longest_length > 1 AND ${type}_last_end < $curPeriod)
+FROM standings NATURAL LEFT JOIN authors
+WHERE contest_id = $contests->{$type}{contest_id}
+  AND (longest_length > last_length
+       OR (longest_length > 1 AND last_end < $curPeriod))
 $order_by
 
   }, # end all_time
@@ -96,12 +103,13 @@ $order_by
   return <<"";
 SELECT
   author_id AS id,
-  ${type}_last_start AS start,
-  ${type}_last_length AS length,
-  ${type}_active_weeks AS active_weeks,
-  (${type}_last_end = $curPeriod) AS endangered
-FROM authors
-WHERE ${type}_last_end >= $curPeriod AND ${type}_last_length > 1
+  last_start AS start,
+  last_length AS length,
+  active_weeks AS active_weeks,
+  (last_end = $curPeriod) AS endangered
+FROM standings NATURAL LEFT JOIN authors
+WHERE contest_id = $contests->{$type}{contest_id}
+  AND last_end >= $curPeriod AND last_length > 1
 $order_by
 
   }, # end current
@@ -111,7 +119,7 @@ sub begin_query
 {
   my ($type, $query, $limit) = @_;
 
-  my $total_weeks = $current_period->delta_days( $start_time{$type} )
+  my $total_weeks = $current_period->delta_days($contests->{$type}{start_date})
                                    ->in_units('weeks') + 1;
   my $one_week_percentage = 100 / $total_weeks;
 
@@ -171,19 +179,19 @@ sub page
 
 #=====================================================================
 page('index.html' => {
-  all_time   => begin_query(qw(con  all_time), 10),
-  current    => begin_query(qw(con  current),  10),
-  historical => begin_query(qw(hist all_time), 10),
+  all_time   => begin_query(qw(2012 all_time), 10),
+  current    => begin_query(qw(2012 current),  10),
+  historical => begin_query('All Time', 'all_time', 10),
 });
 
 #---------------------------------------------------------------------
-page('longest.html', { all_time => begin_query(qw(con all_time), 200) });
+page('longest.html', { all_time => begin_query(qw(2012 all_time), 200) });
 
 #---------------------------------------------------------------------
-page('current.html', { current => begin_query(qw(con current), 0) });
+page('current.html', { current => begin_query(qw(2012 current), 0) });
 
 #---------------------------------------------------------------------
-page('historical.html', { all_time => begin_query(qw(hist all_time), 200) });
+page('historical.html', { all_time => begin_query('All Time', 'all_time', 200) });
 
 #---------------------------------------------------------------------
 $db->disconnect;

@@ -27,21 +27,15 @@ $db->do(<<'');
 CREATE TABLE authors (
   author_num     INTEGER PRIMARY KEY,
   author_id      TEXT NOT NULL UNIQUE,
-  con_longest_start   TIMESTAMP,
-  con_longest_length  INTEGER NOT NULL DEFAULT 0,
-  con_last_start      TIMESTAMP,
-  con_last_end        TIMESTAMP,
-  con_last_length     INTEGER NOT NULL DEFAULT 0,
-  con_active_weeks    INTEGER NOT NULL DEFAULT 0,
-  con_total_releases  INTEGER NOT NULL DEFAULT 0,
-  hist_longest_start  TIMESTAMP,
-  hist_longest_length INTEGER NOT NULL DEFAULT 0,
-  hist_last_start     TIMESTAMP,
-  hist_last_end       TIMESTAMP,
-  hist_last_length    INTEGER NOT NULL DEFAULT 0,
-  hist_active_weeks   INTEGER NOT NULL DEFAULT 0,
-  hist_total_releases INTEGER NOT NULL DEFAULT 0,
-  last_release        TIMESTAMP
+  last_release   TIMESTAMP
+)
+
+$db->do(<<'');
+CREATE TABLE contests (
+  contest_id   INTEGER PRIMARY KEY,
+  contest_name TEXT NOT NULL,
+  start_date   TIMESTAMP NOT NULL,
+  end_date     TIMESTAMP
 )
 
 $db->do(<<'');
@@ -54,46 +48,33 @@ CREATE TABLE releases (
 )
 
 $db->do(<<'');
-CREATE VIEW author_contest AS
-SELECT author_num, author_id,
-       date(con_longest_start, 'unixepoch') AS longest_start,
-       con_longest_length AS longest_length,
-       date(con_last_start, 'unixepoch') AS last_start,
-       date(con_last_end, 'unixepoch') AS last_end,
-       datetime(last_release, 'unixepoch') AS last_release,
-       con_last_length AS last_length,
-       con_active_weeks AS active_weeks,
-       con_total_releases AS total_releases
-FROM authors
+CREATE TABLE standings (
+  contest_id      INTEGER NOT NULL REFERENCES contests,
+  author_num      INTEGER NOT NULL REFERENCES authors,
+  longest_start   TIMESTAMP,
+  longest_length  INTEGER NOT NULL DEFAULT 0,
+  last_start      TIMESTAMP,
+  last_end        TIMESTAMP,
+  last_length     INTEGER NOT NULL DEFAULT 0,
+  active_weeks    INTEGER NOT NULL DEFAULT 0,
+  total_releases  INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (contest_id, author_num)
+)
 
 $db->do(<<'');
-CREATE VIEW author_hist AS
-SELECT author_num, author_id,
-       date(hist_longest_start, 'unixepoch') AS longest_start,
-       hist_longest_length AS longest_length,
-       date(hist_last_start, 'unixepoch') AS last_start,
-       date(hist_last_end, 'unixepoch') AS last_end,
-       datetime(last_release, 'unixepoch') AS last_release,
-       hist_last_length AS last_length,
-       hist_active_weeks AS active_weeks,
-       hist_total_releases AS total_releases
-FROM authors
-
-$db->do(<<'');
-CREATE VIEW author_info AS
-SELECT author_num, author_id,
-       date(con_longest_start, 'unixepoch') as con_longest_start,
-       con_longest_length,
-       date(con_last_start, 'unixepoch') as con_last_start,
-       date(con_last_end, 'unixepoch') as con_last_end,
-       con_last_length, con_active_weeks, con_total_releases,
-       date(hist_longest_start, 'unixepoch') as hist_longest_start,
-       hist_longest_length,
-       date(hist_last_start, 'unixepoch') as hist_last_start,
-       date(hist_last_end, 'unixepoch') as hist_last_end,
-       hist_last_length, hist_active_weeks, hist_total_releases,
-       datetime(last_release, 'unixepoch') AS last_release
-FROM authors
+CREATE VIEW author_standings AS
+SELECT
+  author_num,
+  author_id,
+  contest_id,
+  date(longest_start, 'unixepoch') AS longest_start,
+  longest_length,
+  date(last_start, 'unixepoch') AS last_start,
+  date(last_end, 'unixepoch') AS last_end,
+  last_length,
+  active_weeks,
+  total_releases
+FROM standings NATURAL LEFT JOIN authors
 
 $db->do(<<'');
 CREATE VIEW release_info AS
@@ -107,7 +88,7 @@ $db->commit;
 my $csv = Text::CSV->new({ binary => 1, eol => "\x0A" })
     or die "Cannot use CSV: " . Text::CSV->error_diag;
 
-for my $table (qw(authors releases)) {
+for my $table (qw(authors contests releases)) {
   my $fn = "data/$table.csv";
 
   die "Unable to restore $table: $fn not found\n" unless -e $fn;
@@ -125,6 +106,7 @@ for my $table (qw(authors releases)) {
   );
 
   while (my $row = $csv->getline($fh)) {
+    for (@$row) { undef $_ unless length } # empty string is NULL
     $insert->execute(@$row);
   }
 

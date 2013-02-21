@@ -10,9 +10,10 @@ use strict;
 use warnings;
 use 5.010;
 
-use DateTime ();
-use DateTimeX::Seinfeld 0.02 ();
-use DBI ();
+use FindBin ();
+use lib $FindBin::Bin;
+
+use Contest_Util;
 use ElasticSearch ();
 
 #---------------------------------------------------------------------
@@ -25,9 +26,7 @@ my $es = ElasticSearch->new(
 );
 
 #---------------------------------------------------------------------
-my $db = DBI->connect("dbi:SQLite:dbname=seinfeld.db","","",
-                      { AutoCommit => 0, PrintError => 0, RaiseError => 1 });
-$db->do("PRAGMA foreign_keys = ON");
+db_init();
 
 #---------------------------------------------------------------------
 sub getID
@@ -103,94 +102,8 @@ while (my @hits = $scroller->next($size)) {
 #---------------------------------------------------------------------
 # Update chains for authors with new releases:
 
-my $getReleases = $db->prepare(<<'');
-SELECT date FROM releases WHERE author_num = ? AND date > ? ORDER BY date
+load_contests();
 
-my $getAuthorInfo = $db->prepare(<<'');
-SELECT con_longest_start, con_longest_length,
-  con_last_start, con_last_end, con_last_length,
-  con_active_weeks, con_total_releases,
-  hist_longest_start, hist_longest_length,
-  hist_last_start, hist_last_end, hist_last_length,
-  hist_active_weeks, hist_total_releases,
-  last_release
-  FROM authors WHERE author_num = ?
-
-my $update = $db->prepare(<<'');
-UPDATE authors SET
-  con_longest_start = ?, con_longest_length = ?,
-  con_last_start = ?, con_last_end = ?, con_last_length = ?,
-  con_active_weeks = ?, con_total_releases = ?,
-  hist_longest_start = ?, hist_longest_length = ?,
-  hist_last_start = ?, hist_last_end = ?, hist_last_length = ?,
-  hist_active_weeks = ?, hist_total_releases = ?,
-  last_release = ?
-  WHERE author_num = ?
-
-my %seinfeld = (
-  con => DateTimeX::Seinfeld->new(
-    start_date => {qw(year 2012 month 1 day 1 time_zone UTC)},
-    increment  => { weeks => 1 },
-  ),
-
-  hist => DateTimeX::Seinfeld->new(
-    start_date => {qw(year 1995 month 8 day 13 time_zone UTC)},
-    increment  => { weeks => 1 },
-  ),
-);
-
-my $contest_start = $seinfeld{con}->start_date;
-my $updated;
-
-for my $aNum (values %author) {
-  my $author = $db->selectrow_hashref($getAuthorInfo, undef, $aNum);
-
-  my $dates = $db->selectcol_arrayref($getReleases, undef,
-                                      $aNum, $author->{last_release} // 0);
-
-  next unless @$dates;
-
-  for (@$dates,
-       @$author{qw(con_longest_start con_last_start con_last_end
-                   hist_longest_start hist_last_start hist_last_end
-                   last_release)}) {
-    $_ = DateTime->from_epoch(epoch => $_) if defined $_;
-  }
-
-  my @values;
-  for my $type (qw(con hist)) {
-    my $info;
-    if ($author->{"${type}_last_length"}) {
-      $info = {
-        longest => {
-          start_period => $author->{"${type}_longest_start"},
-          length       => $author->{"${type}_longest_length"},
-        },
-        last    => {
-          start_period => $author->{"${type}_last_start"},
-          end_period   => $author->{"${type}_last_end"},
-          end_event    => $author->{last_release},
-          length       => $author->{"${type}_last_length"},
-        },
-        marked_periods => $author->{"${type}_active_weeks"},
-      };
-    } # end if author has existing chains
-
-    $info = $seinfeld{$type}->find_chains( $dates, $info );
-
-    push @values,
-      $info->{longest}{start_period}->epoch, $info->{longest}{length},
-      $info->{last}{start_period}->epoch, $info->{last}{end_period}->epoch,
-      $info->{last}{length},
-      $info->{marked_periods}, $author->{"${type}_total_releases"} + @$dates;
-
-    push @values, $info->{last}{end_event}->epoch if $type eq 'hist';
-  } # end foreach $type
-
-  ++$updated;
-  $update->execute(@values, $aNum);
-} # end for each $aNum in %author
-
-$db->commit;
+my $updated = process_authors( [ values %author ], 1);
 
 exit( $updated ? 0 : 212 );
