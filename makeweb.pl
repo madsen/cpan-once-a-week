@@ -170,11 +170,11 @@ sub begin_query
 #---------------------------------------------------------------------
 sub page
 {
-  my ($fn, $data) = @_;
-
+  my ($tmpl, $data, $fn) = @_;
+  $fn ||= $tmpl;
   $data->{endangered}  = $endangered_class;
 
-  $tt->process($fn, $data, $fn);
+  $tt->process($tmpl, $data, $fn);
 } # end page
 
 #=====================================================================
