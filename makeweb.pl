@@ -175,7 +175,7 @@ sub page
   $fn ||= $tmpl;
   $data->{endangered}  = $endangered_class;
 
-  $tt->process($tmpl, $data, $fn);
+  $tt->process($tmpl, $data, $fn) or die $tt->error;
 } # end page
 
 #=====================================================================
