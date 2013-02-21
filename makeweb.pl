@@ -109,7 +109,7 @@ SELECT
   (last_end = $curPeriod) AS endangered
 FROM standings NATURAL LEFT JOIN authors
 WHERE contest_id = $contests->{$type}{contest_id}
-  AND last_end >= $curPeriod AND last_length > 1
+  AND last_length > 1
 $order_by
 
   }, # end current
@@ -119,8 +119,9 @@ sub begin_query
 {
   my ($type, $query, $limit) = @_;
 
-  my $total_weeks = $current_period->delta_days($contests->{$type}{start_date})
-                                   ->in_units('weeks') + 1;
+  my $total_weeks = ( $contests->{$type}{end_date} || $current_period )
+    ->delta_days( $contests->{$type}{start_date} )->in_units('weeks');
+  $total_weeks += 1 if !$contests->{$type}{end_date};
   my $one_week_percentage = 100 / $total_weeks;
 
   my (%id_used, %row, $rank, $last_score, $new_score, $d);
@@ -170,25 +171,52 @@ sub begin_query
 #---------------------------------------------------------------------
 sub page
 {
-  my ($fn, $data) = @_;
-
+  my ($tmpl, $data, $fn) = @_;
+  $fn ||= $tmpl;
   $data->{endangered}  = $endangered_class;
 
-  $tt->process($fn, $data, $fn);
+  $tt->process($tmpl, $data, $fn) or die $tt->error;
 } # end page
 
 #=====================================================================
+my $current = 0;
+for my $year ( grep /^\d+$/, keys %$contests ) {
+    $current = $year if $year > $current;
+    page(
+        'longest.html',
+        {   all_time   => begin_query( $year, 'all_time', 0 ),
+            start_date => $contests->{$year}{start_date},
+            end_date   => $contests->{$year}{end_date},
+            year       => $year,
+        },
+        "$year.html"
+    );
+}
+page(
+    'current.html',
+    {   current    => begin_query( $current, 'current', 0 ),
+        start_date => $contests->{$current}{start_date},
+        year       => $current,
+    }
+);
+
+#---------------------------------------------------------------------
 page('index.html' => {
-  all_time   => begin_query(qw(2012 all_time), 10),
-  current    => begin_query(qw(2012 current),  10),
+  all_time   => begin_query($current, 'all_time', 10),
+  current    => begin_query($current, 'current',  10),
   historical => begin_query('All Time', 'all_time', 10),
+  start_date => $contests->{$current}{start_date},
+  year       => $current,
 });
 
 #---------------------------------------------------------------------
-page('longest.html', { all_time => begin_query(qw(2012 all_time), 200) });
-
-#---------------------------------------------------------------------
-page('current.html', { current => begin_query(qw(2012 current), 0) });
+page(
+    'longest.html',
+    {   all_time   => begin_query( $current, 'all_time', 200 ),
+        start_date => $contests->{$current}{start_date},
+        year       => $current,
+    }
+);
 
 #---------------------------------------------------------------------
 page('historical.html', { all_time => begin_query('All Time', 'all_time', 200) });
