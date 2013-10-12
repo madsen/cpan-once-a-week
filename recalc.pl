@@ -1,4 +1,4 @@
-#! /usr/bin/perl
+#! /usr/local/bin/perl
 #---------------------------------------------------------------------
 # recalc.pl
 # Copyright 2012 Christopher J. Madsen

@@ -1,4 +1,4 @@
-#! /usr/bin/perl
+#! /usr/local/bin/perl
 #---------------------------------------------------------------------
 # fetchReleases.pl
 # Copyright 2012 Christopher J. Madsen
@@ -13,11 +13,11 @@ use 5.010;
 use DateTime ();
 use DateTimeX::Seinfeld 0.02 ();
 use DBI ();
-use ElasticSearch ();
+use Elasticsearch::Compat ();
 
 #---------------------------------------------------------------------
 my $size = 100;
-my $es = ElasticSearch->new(
+my $es = Elasticsearch::Compat->new(
   servers      => 'api.metacpan.org:80',
   transport    => 'httptiny',
   max_requests => 0,

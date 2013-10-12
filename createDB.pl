@@ -1,4 +1,4 @@
-#! /usr/bin/perl
+#! /usr/local/bin/perl
 #---------------------------------------------------------------------
 # createDB.pl
 # Copyright 2012 Christopher J. Madsen
