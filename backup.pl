@@ -15,7 +15,9 @@ use 5.010;
 
 use autodie ':io';
 
+use DateTime ();
 use DBI ();
+use File::Path 'make_path';
 use Text::CSV ();
 
 #---------------------------------------------------------------------
@@ -29,22 +31,44 @@ my $db = DBI->connect("dbi:SQLite:dbname=seinfeld.db","","",
 $db->do("PRAGMA foreign_keys = ON");
 
 backup(qw(authors  author_num  author_num author_id));
-backup(qw(releases release_id  author_num filename date));
+
+my ($minDate, $maxDate) = $db->selectrow_array(
+  'SELECT MIN(date), MAX(date) FROM releases'
+);
+
+for ($minDate, $maxDate) { $_ = DateTime->from_epoch( epoch => $_ ) }
+
+$minDate->truncate( to => 'month');
+my @releaseArgs = (qw(releases date), [qw(author_num filename date)]);
+
+while ($minDate <= $maxDate) {
+  my $endDate = $minDate->clone->add(months => 1);
+
+  my $year = $minDate->year;
+  make_path("data/releases/$year");
+
+  backup_where(sprintf("date >= %d AND date < %d",
+                       $minDate->epoch, $endDate->epoch),
+               "releases/$year/releases-" . $minDate->format_cldr('yyyy-MM'),
+               @releaseArgs);
+
+  $minDate = $endDate;
+}
 
 $db->disconnect;
 
 #---------------------------------------------------------------------
-sub backup
+sub backup_where
 {
-  my ($table, $order_by, @fields) = @_;
+  my ($where, $basename, $table, $order_by, $fields) = @_;
 
-  open my $fh, ">:utf8", "data/$table.csv";
+  open my $fh, ">:utf8", "data/$basename.csv";
 
-  $csv->print($fh, \@fields);   # print header row
+  $csv->print($fh, $fields);   # print header row
 
-  my $fields = join(',', @fields);
+  $fields = join(',', @$fields);
 
-  my $s = $db->prepare("SELECT $fields FROM $table ORDER BY $order_by");
+  my $s = $db->prepare("SELECT $fields FROM $table WHERE $where ORDER BY $order_by");
   $s->execute;
 
   while (my $row = $s->fetchrow_arrayref) {
@@ -52,4 +76,12 @@ sub backup
   }
 
   close $fh;
+} # end backup_where
+
+#---------------------------------------------------------------------
+sub backup
+{
+  my ($table, $order_by, @fields) = @_;
+
+  backup_where(1, $table, $table, $order_by, \@fields);
 } # end backup

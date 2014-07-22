@@ -13,6 +13,7 @@ use 5.010;
 use autodie ':io';
 
 use DBI;
+use Path::Tiny 'path';
 use Text::CSV ();
 
 my $dbname = 'seinfeld.db';
@@ -107,8 +108,16 @@ $db->commit;
 my $csv = Text::CSV->new({ binary => 1, eol => "\x0A" })
     or die "Cannot use CSV: " . Text::CSV->error_diag;
 
-for my $table (qw(authors releases)) {
-  my $fn = "data/$table.csv";
+restore(authors => "data/authors.csv");
+
+for my $dir (sort (path(qw(data releases))->children(qr/^\d{4}$/))) {
+  for my $fn (sort $dir->children(qr/^releases-\d{4}-\d\d\.csv$/)) {
+    restore(releases => $fn->stringify);
+  }
+}
+
+sub restore {
+  my ($table, $fn) = @_;
 
   die "Unable to restore $table: $fn not found\n" unless -e $fn;
   open my $fh, "<:utf8", $fn;
@@ -131,7 +140,7 @@ for my $table (qw(authors releases)) {
   $db->commit;
 
   close $fh;
-} # end backup
+} # end restore
 
 #---------------------------------------------------------------------
 say 'Release data restored.  Now run recalc.pl to find Seinfeld chains.';
