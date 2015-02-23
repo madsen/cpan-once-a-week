@@ -68,6 +68,7 @@ my $tdb = DBI->connect("dbi:SQLite:dbname=$tempdir/temp.db","","",
   my $es = Search::Elasticsearch->new(
     cxn_pool => 'Static::NoPing',
     nodes    => 'api.metacpan.org:80',
+    handle_args => { agent => 'onceaweek/1 ' },
   );
 
   my $scroller = $es->scroll_helper(
