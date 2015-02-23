@@ -13,23 +13,97 @@ use 5.010;
 use DateTime ();
 use DateTimeX::Seinfeld 0.02 ();
 use DBI ();
-use Elasticsearch::Compat ();
+use File::Temp qw(tempdir);
+use Search::Elasticsearch ();
 
 #---------------------------------------------------------------------
-my $size = 100;
-my $es = Elasticsearch::Compat->new(
-  servers      => 'api.metacpan.org:80',
-  transport    => 'httptiny',
-  max_requests => 0,
-  no_refresh   => 1,
-);
+# Connect to the main database
 
-#---------------------------------------------------------------------
 my $db = DBI->connect("dbi:SQLite:dbname=seinfeld.db","","",
                       { AutoCommit => 0, PrintError => 0, RaiseError => 1 });
 $db->do("PRAGMA foreign_keys = ON");
 
 #---------------------------------------------------------------------
+# Elasticsearch can't efficiently sort a scrolled search.
+# So, we dump the records into a temporary database and sort locally.
+# (It's important to insert records by date, because the max date in
+# the releases table tells us where to start the download next time.
+# If something interrupts the download, we don't want to miss releases.
+# Also, this way the author_num column is assigned in the order that
+# people first uploaded something to CPAN.)
+
+my $tempdir = tempdir(CLEANUP => 1);
+
+my $tdb = DBI->connect("dbi:SQLite:dbname=$tempdir/temp.db","","",
+                       { AutoCommit => 0, PrintError => 0, RaiseError => 1 });
+
+{
+  # Create a table in the temporary database
+  $tdb->do(<<'');
+  CREATE TABLE releases (
+    author   TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    date     TIMESTAMP NOT NULL,
+    UNIQUE(author, filename)
+  )
+
+  my $addRelease = $tdb->prepare(<<'');
+  INSERT OR IGNORE INTO releases
+  (author, filename, date) VALUES (?,?, strftime('%s', ?))
+
+  my $size = 100;               # records per Elasticsearch batch
+
+  # Figure out where we need to start fetching new releases
+  my $date = $db->selectrow_array('SELECT MAX(date) FROM releases');
+  if ($date) {
+    # subtract 15 minutes just in case something got added out of order
+    $date = DateTime->from_epoch(epoch => $date)
+                    ->subtract( minutes => 15 )
+                    ->iso8601 . 'Z';
+  } else {
+    $date = '1995-08-16T00:00:00.000Z'; # Happy birthday, CPAN!
+  }
+
+  # Start the scrolling query on MetaCPAN
+  my $es = Search::Elasticsearch->new(
+    cxn_pool => 'Static::NoPing',
+    nodes    => 'api.metacpan.org:80',
+  );
+
+  my $scroller = $es->scroll_helper(
+    index       => 'v0',
+    type        => 'release',
+    search_type => 'scan',
+    scroll      => '2m',
+    size        => $size,
+    body        => {
+      fields => [qw(author archive date)],
+      query  => { range => { date => { gte => $date } } },
+    },
+  );
+
+  # Insert records into the temporary database
+  while (my @hits = $scroller->next($size)) {
+    foreach my $hit (@hits) {
+      my $field = $hit->{fields};
+
+      $field->{archive} =~ s!^.*/!!; # remove directories
+
+      ### say "@$field{qw(date author archive)}";
+
+      $addRelease->execute( @$field{qw(author archive date)} );
+    } # end foreach $hit in @hits
+
+    $tdb->commit;
+
+    sleep 2 unless $scroller->is_finished;
+  } # end while hits
+}
+
+#---------------------------------------------------------------------
+# Prepare to transfer the records into the main db
+#---------------------------------------------------------------------
+
 sub getID
 {
   my ($cache, $get, $add, $name) = @_;
@@ -53,52 +127,26 @@ INSERT INTO authors (author_id) VALUES (?)
 
 my $addRelease = $db->prepare(<<'');
 INSERT OR IGNORE INTO releases
-(author_num, filename, date) VALUES (?,?, strftime('%s', ?))
+(author_num, filename, date) VALUES (?,?, ?)
 
 my (%author);
 my @author = (\%author, $getAuthor, $addAuthor);
 
 #---------------------------------------------------------------------
-my $date = $db->selectrow_array('SELECT MAX(date) FROM releases');
+# Transfer release data from temporary db to main db:
 
-if ($date) {
-  # subtract 15 minutes just in case something got added out of order
-  $date = DateTime->from_epoch(epoch => $date)
-                  ->subtract( minutes => 15 )
-                  ->iso8601 . 'Z';
-} else {
-  $date = '2012-01-01T00:00:00.000Z';
+{
+  my $getReleases = $tdb->prepare(<<'');
+SELECT author, filename, date FROM releases ORDER BY date
+
+  $getReleases->execute;
+
+  while (my $row = $getReleases->fetchrow_arrayref) {
+    $addRelease->execute( getID(@author, $row->[0]), @$row[1,2] );
+  } # end while hits
+
+  $tdb->disconnect;
 }
-
-#---------------------------------------------------------------------
-# Fetch release data:
-
-my $scroller = $es->scrolled_search(
-  index  => 'v0',
-  type   => 'release',
-  query  => { range => { date => { gte => $date } } },
-  scroll => '2h',
-  size   => $size,
-  fields => [qw(author archive date)],
-  sort   => [ { "date" => "asc" } ],
-);
-
-while (my @hits = $scroller->next($size)) {
-  foreach my $hit (@hits) {
-    my $field = $hit->{fields};
-
-    $field->{archive} =~ s!^.*/!!; # remove directories
-
-    ### say "@$field{qw(date author archive)}";
-
-    $addRelease->execute( getID(@author, $field->{author}),
-                          @$field{qw(archive date)} );
-  } # end foreach $hit in @hits
-
-  $db->commit;
-
-  sleep 2 unless $scroller->eof;
-} # end while hits
 
 #---------------------------------------------------------------------
 # Update chains for authors with new releases:
@@ -192,5 +240,6 @@ for my $aNum (values %author) {
 } # end for each $aNum in %author
 
 $db->commit;
+$db->disconnect;
 
 exit( $updated ? 0 : 212 );
