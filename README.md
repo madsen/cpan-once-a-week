@@ -1,11 +1,16 @@
 The CPAN “Once a Week, Every Week” Contest
 ==========================================
 
-This is the Git repository for the [CPAN “Once a Week, Every Week”
-Contest website](http://onceaweek.cjmweb.net/).  You can get the release database from
+This is the Git repository for the CPAN “Once a Week, Every Week”
+Contest website (which was located at onceaweek.cjmweb.net
+but is now offline).  You can get the release database from
 [the data Git repository](https://github.com/madsen/cpan-once-a-week-data)
 and store it in the `data/` directory of this repository.  (It's not a
 Git submodule because I don't want to link it to any particular revision.)
+
+If anyone wants to bring back the website, feel free to fork this
+repository.  If you let me know, I can CNAME onceaweek.cjmweb.net to
+your new site.
 
 Recreating the Website
 ======================
