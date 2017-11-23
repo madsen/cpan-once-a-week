@@ -16,7 +16,9 @@ Recreating the Website
 ======================
 
 1. Make sure you've checked out the most recent [release data](https://github.com/madsen/cpan-once-a-week-data) into
-the `data/` subdirectory.
+the `data/` subdirectory.  You'll also need to run the
+`fetchReleases.pl` script, because the data repository
+is no longer being updated.
 
 2. Run the `createDB.pl` script to create `seinfeld.db` and populate
 it with the release data.
